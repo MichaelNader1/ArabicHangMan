@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#102e25">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23d4b56c' d='M32 2 39 24 62 32 39 40 32 62 25 40 2 32 25 24Z'/%3E%3C/svg%3E">
+    <title>لعبة كلمات الميلاد</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --forest: #102e25;
+            --forest-deep: #0a211b;
+            --pine: #1d493a;
+            --pine-light: #2d6350;
+            --cream: #f7f1e4;
+            --paper: #fffdf7;
+            --paper-deep: #eee4ce;
+            --ink: #17372d;
+            --muted: #526b60;
+            --gold: #d4b56c;
+            --gold-light: #f1dda3;
+            --red: #96313a;
+            --red-deep: #76232e;
+            --line: rgba(32, 66, 52, 0.13);
+            --shadow: 0 22px 70px rgba(3, 20, 15, 0.28), 0 3px 12px rgba(3, 20, 15, 0.12);
+            --radius-lg: 26px;
+            --radius-md: 18px;
+            --font-ar: "Noto Naskh Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        html {
+            min-width: 320px;
+            background: var(--forest-deep);
+            scroll-behavior: smooth;
+        }
+
+        body {
+            min-width: 320px;
+            min-height: 100vh;
+            min-height: 100svh;
+            margin: 0;
+            overflow-x: hidden;
+            color: var(--cream);
+            background: linear-gradient(145deg, #183d30 0%, var(--forest) 52%, var(--forest-deep) 100%);
+            font-family: var(--font-ar);
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::selection {
+            color: var(--forest-deep);
+            background: var(--gold-light);
+        }
+
+        button {
+            font: inherit;
+        }
+
+        button:focus-visible {
+            outline: 3px solid var(--gold-light);
+            outline-offset: 4px;
+        }
+
+        .ambient {
+            position: fixed;
+            z-index: 0;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .ambient::before,
+        .ambient::after {
+            position: absolute;
+            inset: -14% 0 0;
+            content: "";
+            background-image:
+                radial-gradient(circle, rgba(255, 251, 235, 0.72) 0 1.2px, transparent 1.8px),
+                radial-gradient(circle, rgba(244, 226, 178, 0.5) 0 1px, transparent 1.7px),
+                radial-gradient(circle, rgba(255, 255, 255, 0.38) 0 1.5px, transparent 2px);
+            background-position: 0 0, 43px 69px, 91px 22px;
+            background-size: 156px 168px, 211px 223px, 278px 248px;
+            opacity: 0.23;
+            animation: snowfall 34s linear infinite;
+        }
+
+        .ambient::after {
+            inset: -22% 0 0;
+            background-position: 65px 38px, 17px 113px, 142px 70px;
+            background-size: 213px 236px, 291px 303px, 347px 321px;
+            opacity: 0.14;
+            animation-duration: 52s;
+            animation-direction: reverse;
+        }
+
+        .light-string {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            display: flex;
+            width: min(780px, 88vw);
+            height: 45px;
+            justify-content: space-around;
+            transform: translateX(-50%);
+            opacity: 0.82;
+        }
+
+        .light-string::before {
+            position: absolute;
+            top: -13px;
+            left: 2%;
+            width: 96%;
+            height: 30px;
+            border-top: 1px solid rgba(221, 193, 126, 0.58);
+            border-radius: 50%;
+            content: "";
+        }
+
+        .light-string span {
+            position: relative;
+            z-index: 1;
+            width: 9px;
+            height: 14px;
+            margin-top: 8px;
+            border: 1px solid rgba(255, 245, 211, 0.62);
+            border-radius: 4px 4px 7px 7px;
+            background: #e8d08a;
+            box-shadow: 0 2px 7px rgba(0, 0, 0, 0.2);
+        }
+
+        .light-string span:nth-child(3n + 1) {
+            background: #c55c58;
+            box-shadow: 0 2px 7px rgba(0, 0, 0, 0.2);
+        }
+
+        .light-string span:nth-child(3n + 2) {
+            background: #8eba88;
+            box-shadow: 0 2px 7px rgba(0, 0, 0, 0.2);
+        }
+
+        .app-shell {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            min-height: 100vh;
+            min-height: 100svh;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(38px, 5vh, 64px) 24px 28px;
+        }
+
+        .screen {
+            width: min(1120px, 100%);
+            margin-inline: auto;
+        }
+
+        .start-screen,
+        .completion-screen {
+            width: min(820px, 100%);
+            text-align: center;
+        }
+
+        .start-card,
+        .completion-card {
+            position: relative;
+            overflow: hidden;
+            padding: clamp(32px, 6vw, 68px);
+            border: 1px solid rgba(245, 226, 174, 0.36);
+            border-radius: 32px;
+            background:
+                radial-gradient(ellipse at 50% 0%, rgba(242, 219, 159, 0.12), transparent 46%),
+                linear-gradient(145deg, rgba(31, 74, 57, 0.96), rgba(12, 39, 31, 0.97));
+            box-shadow: var(--shadow);
+            isolation: isolate;
+        }
+
+        .start-card::before,
+        .completion-card::before {
+            position: absolute;
+            z-index: -1;
+            inset: 12px;
+            border: 1px solid rgba(220, 190, 119, 0.19);
+            border-radius: 23px;
+            content: "";
+            pointer-events: none;
+        }
+
+        .start-card::after,
+        .completion-card::after {
+            position: absolute;
+            z-index: -1;
+            top: -142px;
+            left: 50%;
+            width: 260px;
+            height: 260px;
+            border: 1px solid rgba(220, 190, 119, 0.12);
+            border-radius: 50%;
+            content: "";
+            transform: translateX(-50%);
+        }
+
+        .nativity-star {
+            display: block;
+            width: clamp(72px, 10vw, 104px);
+            height: auto;
+            margin: 0 auto 24px;
+            color: var(--gold-light);
+            filter: drop-shadow(0 7px 22px rgba(239, 209, 131, 0.25));
+        }
+
+        .start-title,
+        .completion-title {
+            max-width: 15ch;
+            margin: 0 auto;
+            color: #fff8e8;
+            font-size: clamp(2.2rem, 5.7vw, 4.3rem);
+            font-weight: 800;
+            line-height: 1.22;
+            text-wrap: balance;
+        }
+
+        .completion-title:focus {
+            outline: none;
+        }
+
+        .start-copy,
+        .completion-copy {
+            max-width: 34ch;
+            margin: 18px auto 0;
+            color: #e7dfc9;
+            font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+            line-height: 1.8;
+            text-wrap: pretty;
+        }
+
+        .start-rules {
+            display: flex;
+            width: fit-content;
+            max-width: 100%;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 28px auto 34px;
+            padding: 11px 18px;
+            border: 1px solid rgba(230, 211, 160, 0.28);
+            border-radius: 999px;
+            color: #f0e4c1;
+            background: rgba(7, 27, 21, 0.32);
+            font-size: clamp(0.98rem, 1.8vw, 1.12rem);
+        }
+
+        .small-star {
+            width: 16px;
+            height: 16px;
+            flex: none;
+            color: var(--gold-light);
+        }
+
+        .primary-button,
+        .secondary-button {
+            display: inline-flex;
+            min-height: 58px;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 14px 30px;
+            border: 1px solid transparent;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: clamp(1.1rem, 2vw, 1.34rem);
+            font-weight: 800;
+            line-height: 1.3;
+            transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+            touch-action: manipulation;
+        }
+
+        .primary-button {
+            color: #1a3025;
+            background: linear-gradient(135deg, #f2dda3, #d6b96e);
+            box-shadow: 0 9px 22px rgba(4, 19, 14, 0.28), 0 3px 0 rgba(125, 94, 32, 0.36);
+        }
+
+        .secondary-button {
+            color: var(--cream);
+            border-color: rgba(229, 210, 161, 0.38);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .primary-button:hover,
+        .secondary-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .primary-button:hover {
+            box-shadow: 0 12px 28px rgba(4, 19, 14, 0.34), 0 3px 0 rgba(125, 94, 32, 0.36);
+        }
+
+        .primary-button:active,
+        .secondary-button:active {
+            transform: translateY(1px);
+        }
+
+        .button-arrow {
+            width: 21px;
+            height: 21px;
+            flex: none;
+        }
+
+        .game-screen {
+            padding-block: 2px;
+        }
+
+        .game-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 22px;
+            margin-bottom: 14px;
+            padding-inline: 6px;
+        }
+
+        .game-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .brand-star {
+            display: grid;
+            width: 56px;
+            height: 56px;
+            flex: none;
+            place-items: center;
+            border: 1px solid rgba(229, 205, 143, 0.34);
+            border-radius: 18px;
+            color: var(--gold-light);
+            background: rgba(255, 255, 255, 0.055);
+        }
+
+        .brand-star svg {
+            width: 31px;
+            height: 31px;
+        }
+
+        .game-title {
+            margin: 0;
+            color: #fff9ea;
+            font-size: clamp(1.6rem, 3vw, 2.35rem);
+            font-weight: 800;
+            line-height: 1.3;
+        }
+
+        .game-subtitle {
+            margin: 3px 0 0;
+            color: #d6e2d3;
+            font-size: clamp(0.98rem, 1.65vw, 1.12rem);
+        }
+
+        .game-panel {
+            overflow: hidden;
+            border: 1px solid rgba(249, 240, 216, 0.48);
+            border-radius: var(--radius-lg);
+            color: var(--ink);
+            background: rgba(250, 247, 237, 0.97);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(15px);
+        }
+
+        .status-bar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(230px, 0.62fr);
+            align-items: center;
+            gap: 22px;
+            padding: 18px clamp(20px, 3vw, 34px);
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(90deg, rgba(255, 253, 247, 0.92), rgba(241, 234, 216, 0.82));
+        }
+
+        .progress-copy {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+            color: var(--ink);
+            font-size: clamp(1rem, 1.8vw, 1.22rem);
+            font-weight: 700;
+        }
+
+        .progress-current {
+            color: var(--red);
+            font-size: 1.28em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .progress-track {
+            height: 9px;
+            overflow: hidden;
+            border: 1px solid rgba(32, 66, 52, 0.1);
+            border-radius: 999px;
+            background: #e3ddcc;
+        }
+
+        .progress-fill {
+            width: 5.55%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #a23b3d, #d4ad5d);
+            transform-origin: right center;
+            transition: width 300ms ease;
+        }
+
+        .mistakes-block {
+            padding-inline-start: 22px;
+            border-inline-start: 1px solid var(--line);
+        }
+
+        .mistakes-label {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 9px;
+            color: var(--ink);
+            font-size: clamp(0.98rem, 1.65vw, 1.12rem);
+            font-weight: 700;
+        }
+
+        .mistakes-value {
+            color: var(--red);
+            font-size: 1.2em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .mistake-pips {
+            display: flex;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+
+        .mistake-pip {
+            width: clamp(14px, 1.5vw, 18px);
+            height: clamp(14px, 1.5vw, 18px);
+            border: 2px solid #b18b3f;
+            border-radius: 50%;
+            background: #dfc780;
+            box-shadow: inset 0 1px 2px rgba(70, 52, 17, 0.16);
+            transition: transform 180ms ease, background-color 180ms ease, opacity 180ms ease;
+        }
+
+        .mistake-pip.spent {
+            border-color: #c9c2b2;
+            background: transparent;
+            box-shadow: none;
+            opacity: 0.64;
+            transform: scale(0.82);
+        }
+
+        .game-layout {
+            display: grid;
+            grid-template-columns: minmax(250px, 0.82fr) minmax(0, 1.18fr);
+            gap: clamp(16px, 2.4vw, 28px);
+            padding: clamp(16px, 2.4vw, 22px);
+        }
+
+        .hangman-panel,
+        .keyboard-panel {
+            min-width: 0;
+            border: 1px solid rgba(34, 69, 53, 0.12);
+            border-radius: var(--radius-md);
+            background: rgba(255, 253, 247, 0.72);
+        }
+
+        .hangman-panel {
+            display: flex;
+            min-height: 340px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 17px;
+            background:
+                radial-gradient(circle at 50% 45%, rgba(222, 204, 159, 0.25), transparent 55%),
+                linear-gradient(145deg, #f0eadb, #e7e0ce);
+        }
+
+        .hangman-caption {
+            align-self: stretch;
+            margin: 0;
+            color: #53665a;
+            font-size: 0.98rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .hangman-svg {
+            display: block;
+            width: min(100%, 230px);
+            height: auto;
+            max-height: 290px;
+            margin: 2px auto 0;
+            overflow: visible;
+        }
+
+        .gallows {
+            fill: none;
+            stroke: #997c42;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 7;
+        }
+
+        .rope {
+            stroke: #967346;
+            stroke-width: 4;
+        }
+
+        .hangman-part {
+            opacity: 0;
+            transform: scale(0.88);
+            transform-box: fill-box;
+            transform-origin: center;
+            transition: opacity 260ms ease, transform 320ms cubic-bezier(0.18, 0.8, 0.25, 1);
+        }
+
+        .hangman-part.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .person-head {
+            fill: #fffaf0;
+            stroke: var(--red);
+            stroke-width: 6;
+        }
+
+        .person-line {
+            stroke: var(--red);
+            stroke-linecap: round;
+            stroke-width: 6;
+        }
+
+        .keyboard-panel {
+            padding: clamp(18px, 2.5vw, 28px);
+        }
+
+        .keyboard-heading {
+            margin: 0;
+            color: var(--ink);
+            font-size: clamp(1.25rem, 2.2vw, 1.62rem);
+            font-weight: 800;
+            line-height: 1.45;
+            text-align: center;
+        }
+
+        .keyboard-help {
+            margin: 3px 0 18px;
+            color: var(--muted);
+            font-size: clamp(0.96rem, 1.55vw, 1.08rem);
+            line-height: 1.7;
+            text-align: center;
+        }
+
+        .letters-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: clamp(6px, 0.85vw, 10px);
+        }
+
+        @media (min-width: 1100px) {
+            .letters-grid {
+                grid-template-columns: repeat(9, minmax(0, 1fr));
+                gap: clamp(6px, 0.75vw, 9px);
+            }
+
+            .letter-key {
+                min-height: 44px;
+                font-size: clamp(1.1rem, 1.5vw, 1.35rem);
+            }
+        }
+
+        .letter-key {
+            display: grid;
+            min-width: 0;
+            min-height: 48px;
+            aspect-ratio: 1;
+            place-items: center;
+            padding: 2px;
+            border: 1px solid rgba(30, 69, 52, 0.24);
+            border-radius: 13px;
+            color: #fffdf7;
+            background: linear-gradient(145deg, #285c48, #194333);
+            box-shadow: 0 3px 0 #103327, 0 5px 9px rgba(24, 55, 42, 0.13);
+            cursor: pointer;
+            font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+            font-weight: 800;
+            line-height: 1;
+            transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .letter-key:hover:not(:disabled) {
+            border-color: #caa952;
+            background: linear-gradient(145deg, #347256, #20513c);
+            box-shadow: 0 4px 0 #103327, 0 8px 14px rgba(24, 55, 42, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .letter-key:active:not(:disabled) {
+            box-shadow: 0 1px 0 #103327;
+            transform: translateY(2px);
+        }
+
+        .letter-key:disabled {
+            cursor: default;
+        }
+
+        .letter-key[data-state="correct"] {
+            border-color: #d0b566;
+            color: #fffdf7;
+            background: linear-gradient(145deg, #94742f, #705822);
+            box-shadow: 0 2px 0 #5e491a;
+            animation: answer-pop 260ms ease-out;
+        }
+
+        .letter-key[data-state="wrong"] {
+            border-color: #bd6360;
+            color: #fff8ef;
+            background: linear-gradient(145deg, #a33c43, #812e39);
+            box-shadow: 0 2px 0 #69232e;
+            animation: wrong-nudge 220ms ease-out;
+        }
+
+        .letter-key:disabled:not([data-state]) {
+            border-color: #c8c4b8;
+            color: #797a70;
+            background: #deddd5;
+            box-shadow: 0 2px 0 #c5c3b8;
+        }
+
+        .answer-panel {
+            padding: 0 clamp(18px, 2.8vw, 30px) clamp(18px, 2vw, 22px);
+        }
+
+        .answer-heading {
+            margin: 0 0 12px;
+            color: var(--ink);
+            font-size: clamp(1.06rem, 1.8vw, 1.26rem);
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .word-display {
+            display: flex;
+            min-height: 90px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 12px 7px;
+            padding: 17px clamp(12px, 2vw, 24px);
+            border: 1px solid rgba(179, 144, 65, 0.2);
+            border-radius: 18px;
+            background:
+                radial-gradient(ellipse at 50% 0%, rgba(229, 210, 162, 0.25), transparent 75%),
+                #f4efdf;
+        }
+
+        .letter-slot {
+            display: grid;
+            width: clamp(30px, 4.2vw, 47px);
+            height: clamp(42px, 5.6vw, 58px);
+            flex: 0 1 auto;
+            place-items: center;
+            border: 1px solid rgba(142, 114, 54, 0.27);
+            border-bottom: 3px solid #ad8c49;
+            border-radius: 10px 10px 7px 7px;
+            color: var(--forest);
+            background: var(--paper);
+            box-shadow: 0 3px 7px rgba(55, 47, 29, 0.08);
+            font-size: clamp(1.45rem, 3vw, 2.05rem);
+            font-weight: 800;
+            line-height: 1;
+            transition: background-color 180ms ease, border-color 180ms ease;
+        }
+
+        .letter-slot.revealed {
+            border-color: rgba(40, 91, 65, 0.25);
+            border-bottom-color: #2d6a4d;
+            color: #184934;
+            background: #fdfbf2;
+            animation: letter-reveal 320ms cubic-bezier(0.2, 0.9, 0.25, 1.1);
+        }
+
+        .word-space {
+            display: grid;
+            width: clamp(12px, 2vw, 21px);
+            height: clamp(30px, 4vw, 42px);
+            flex: 0 0 clamp(12px, 2vw, 21px);
+            place-items: center;
+            color: #a98a4e;
+        }
+
+        .word-space::after {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: currentColor;
+            content: "";
+            opacity: 0.74;
+        }
+
+        .round-announcement {
+            min-height: 1.6em;
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 0.96rem;
+            text-align: center;
+        }
+
+        .completion-card {
+            padding-block: clamp(42px, 7vw, 76px);
+        }
+
+        .completion-card .nativity-star {
+            margin-bottom: 22px;
+        }
+
+        .completion-copy {
+            margin-bottom: 32px;
+        }
+
+        .completion-actions {
+            margin-top: 30px;
+        }
+
+        .completion-count {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 8px;
+            margin: 22px auto 0;
+            padding: 9px 18px;
+            border: 1px solid rgba(230, 211, 160, 0.28);
+            border-radius: 999px;
+            color: #f1dfb0;
+            background: rgba(7, 27, 21, 0.32);
+            font-size: 1.1rem;
+        }
+
+        .modal {
+            position: fixed;
+            z-index: 10;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            overflow-y: auto;
+            padding: 22px;
+            background: rgba(5, 22, 17, 0.76);
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-dialog {
+            position: relative;
+            width: min(560px, 100%);
+            margin: auto;
+            padding: clamp(28px, 5vw, 48px);
+            border: 1px solid rgba(217, 190, 122, 0.55);
+            border-radius: 26px;
+            color: var(--ink);
+            background:
+                radial-gradient(ellipse at 50% 0%, rgba(233, 215, 170, 0.34), transparent 55%),
+                var(--paper);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+            text-align: center;
+            animation: modal-enter 280ms cubic-bezier(0.18, 0.85, 0.25, 1);
+        }
+
+        .result-emblem {
+            display: grid;
+            width: 56px;
+            height: 56px;
+            place-items: center;
+            margin: 0 auto 12px;
+            color: #886b2e;
+        }
+
+        .result-emblem svg {
+            width: 42px;
+            height: 42px;
+        }
+
+        .modal-dialog[data-result="lose"] .result-emblem {
+            color: var(--red);
+        }
+
+        .modal-title {
+            margin: 0;
+            color: var(--ink);
+            font-size: clamp(1.9rem, 4vw, 2.55rem);
+            font-weight: 800;
+            line-height: 1.35;
+            text-wrap: balance;
+        }
+
+        .modal-message {
+            max-width: 36ch;
+            margin: 13px auto 25px;
+            color: #465f53;
+            font-size: clamp(1.1rem, 2vw, 1.3rem);
+            line-height: 1.8;
+            text-wrap: pretty;
+        }
+
+        .modal-message strong {
+            color: var(--red);
+            font-weight: 800;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+        }
+
+        .screen-reader-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            clip-path: inset(50%);
+        }
+
+        @keyframes snowfall {
+            from { transform: translateY(-10px); }
+            to { transform: translateY(115px); }
+        }
+
+        @keyframes answer-pop {
+            0% { transform: scale(0.92); }
+            65% { transform: scale(1.045); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wrong-nudge {
+            0%, 100% { transform: translateX(0); }
+            35% { transform: translateX(-3px); }
+            70% { transform: translateX(3px); }
+        }
+
+        @keyframes letter-reveal {
+            0% { opacity: 0.35; transform: translateY(4px) scale(0.93); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes modal-enter {
+            from { opacity: 0; transform: translateY(10px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @media (min-width: 1500px) {
+            .screen {
+                width: min(1280px, 100%);
+            }
+
+            .hangman-panel {
+                min-height: 390px;
+            }
+
+            .hangman-svg {
+                width: min(100%, 290px);
+                max-height: 370px;
+            }
+
+            .letter-key {
+                min-height: 56px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .app-shell {
+                align-items: flex-start;
+                padding: 58px 16px 30px;
+            }
+
+            .game-header {
+                align-items: flex-start;
+            }
+
+            .brand-star {
+                width: 48px;
+                height: 48px;
+                border-radius: 15px;
+            }
+
+            .status-bar {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 15px;
+            }
+
+            .mistakes-block {
+                padding: 13px 0 0;
+                border-top: 1px solid var(--line);
+                border-inline-start: 0;
+            }
+
+            .mistakes-label {
+                margin-bottom: 8px;
+            }
+
+            .game-layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .hangman-panel {
+                min-height: 250px;
+            }
+
+            .hangman-svg {
+                width: min(220px, 72vw);
+                max-height: 250px;
+            }
+
+            .keyboard-panel {
+                padding: 20px;
+            }
+
+            .letters-grid {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+                gap: 7px;
+            }
+
+            .letter-key {
+                min-height: 44px;
+                border-radius: 11px;
+            }
+
+            .game-title {
+                font-size: clamp(1.42rem, 4.8vw, 1.9rem);
+            }
+
+            .game-subtitle {
+                max-width: 26ch;
+            }
+        }
+
+        @media (max-width: 440px) {
+            .app-shell {
+                padding: 52px 12px 22px;
+            }
+
+            .screen {
+                width: 100%;
+            }
+
+            .start-card,
+            .completion-card {
+                padding: 38px 22px;
+                border-radius: 25px;
+            }
+
+            .nativity-star {
+                width: 74px;
+                margin-bottom: 18px;
+            }
+
+            .start-title,
+            .completion-title {
+                font-size: clamp(2rem, 9vw, 2.7rem);
+            }
+
+            .start-copy,
+            .completion-copy {
+                font-size: 1.07rem;
+            }
+
+            .game-header {
+                gap: 10px;
+                margin-bottom: 13px;
+                padding-inline: 2px;
+            }
+
+            .game-brand {
+                gap: 10px;
+            }
+
+            .brand-star {
+                width: 41px;
+                height: 41px;
+                border-radius: 13px;
+            }
+
+            .brand-star svg {
+                width: 25px;
+                height: 25px;
+            }
+
+            .game-subtitle {
+                font-size: 0.88rem;
+            }
+
+            .game-panel {
+                border-radius: 20px;
+            }
+
+            .status-bar {
+                gap: 12px;
+                padding: 17px 15px;
+            }
+
+            .mistake-pips {
+                gap: 6px;
+            }
+
+            .game-layout {
+                gap: 13px;
+                padding: 13px;
+            }
+
+            .hangman-panel {
+                min-height: 218px;
+                padding: 12px;
+            }
+
+            .hangman-svg {
+                width: min(188px, 62vw);
+                max-height: 204px;
+            }
+
+            .keyboard-panel {
+                padding: 16px 12px;
+            }
+
+            .keyboard-help {
+                margin-bottom: 13px;
+                font-size: 0.93rem;
+            }
+
+            .letters-grid {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+                gap: 7px;
+            }
+
+            .letter-key {
+                min-height: 43px;
+                border-radius: 10px;
+                font-size: 1.22rem;
+            }
+
+            .answer-panel {
+                padding: 0 13px 16px;
+            }
+
+            .word-display {
+                min-height: 92px;
+                gap: 10px 5px;
+                padding: 13px 8px;
+            }
+
+            .letter-slot {
+                width: clamp(27px, 8.8vw, 35px);
+                height: 42px;
+                border-radius: 8px 8px 6px 6px;
+                font-size: 1.4rem;
+            }
+
+            .word-space {
+                width: 11px;
+                flex-basis: 11px;
+            }
+
+            .modal {
+                padding: 14px;
+            }
+
+            .modal-dialog {
+                padding: 29px 21px;
+                border-radius: 21px;
+            }
+
+            .result-emblem {
+                width: 54px;
+                height: 54px;
+            }
+
+            .modal-message {
+                margin-bottom: 20px;
+            }
+
+            .primary-button,
+            .secondary-button {
+                width: 100%;
+                min-height: 54px;
+                padding-inline: 18px;
+            }
+        }
+
+        @media (max-width: 350px) {
+            .letters-grid {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+
+            .letter-key {
+                min-height: 44px;
+            }
+
+            .mistake-pip {
+                width: 13px;
+                height: 13px;
+            }
+
+            .progress-copy {
+                font-size: 0.97rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .ambient::before,
+            .ambient::after {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient" aria-hidden="true">
+        <div class="light-string">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+        </div>
+    </div>
+
+    <main class="app-shell">
+        <section class="screen start-screen" id="startScreen" aria-labelledby="startTitle">
+            <div class="start-card">
+                <svg class="nativity-star" viewBox="0 0 100 100" aria-hidden="true">
+                    <circle cx="50" cy="50" r="39" fill="none" stroke="currentColor" stroke-opacity=".34" stroke-width="1.5"/>
+                    <path d="M50 8 57 39 84 18 64 44 94 50 64 56 84 82 57 61 50 92 43 61 16 82 36 56 6 50 36 44 16 18 43 39Z" fill="currentColor"/>
+                    <circle cx="50" cy="50" r="8" fill="#1a4434"/>
+                    <path d="M47.5 42.5h5v5h5v5h-5v5h-5v-5h-5v-5h5z" fill="#f1dda3"/>
+                    <path d="M50 0v9M100 50h-9M50 100v-9M0 50h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".78"/>
+                </svg>
+                <h1 class="start-title" id="startTitle">Christmas Sprint 4</h1>
+                <p class="start-copy">اكتشف الكلمة</p>
+                <div class="start-rules">
+                    <svg class="small-star" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m12 2 2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4L12 2Z" fill="currentColor"/>
+                    </svg>
+                    <span>لكل كلمة جولة واحدة، مع ٦ أخطاء كحد أقصى</span>
+                </div>
+                <button class="primary-button" id="startButton" type="button">
+                    ابدأوا اللعب
+                    <svg class="button-arrow" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M19 12H5m7 7-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <section class="screen game-screen" id="gameContainer" aria-labelledby="gameTitle" hidden>
+            <header class="game-header">
+                <div class="game-brand">
+                    <span class="brand-star" aria-hidden="true">
+                        <svg viewBox="0 0 100 100">
+                            <path d="M50 8 57 39 84 18 64 44 94 50 64 56 84 82 57 61 50 92 43 61 16 82 36 56 6 50 36 44 16 18 43 39Z" fill="currentColor"/>
+                            <circle cx="50" cy="50" r="8" fill="#194333"/>
+                            <path d="M47.5 42.5h5v5h5v5h-5v5h-5v-5h-5v-5h5z" fill="#f1dda3"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h1 class="game-title" id="gameTitle">كلمات الميلاد</h1>
+                        <p class="game-subtitle">اختاروا الحروف واكتشفوا العبارة سويًا</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="game-panel">
+                <div class="status-bar">
+                    <div class="progress-block">
+                        <div class="progress-copy">
+                            <span>الكلمة <span class="progress-current" id="currentWordNumber">١</span> من ١٨</span>
+                            <span class="screen-reader-only" id="progressAnnouncement" aria-live="polite">الكلمة ١ من ١٨</span>
+                        </div>
+                        <div class="progress-track" id="wordProgress" role="progressbar" aria-label="التقدم في الكلمات" aria-valuemin="1" aria-valuemax="18" aria-valuenow="1">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                    </div>
+
+                    <div class="mistakes-block">
+                        <div class="mistakes-label">
+                            <span>الأخطاء المتبقية</span>
+                            <span><span class="mistakes-value" id="mistakesRemaining">٦</span> من ٦</span>
+                        </div>
+                        <div class="mistake-pips" id="mistakePips" role="img" aria-label="٦ أخطاء متبقية">
+                            <span class="mistake-pip"></span><span class="mistake-pip"></span>
+                            <span class="mistake-pip"></span><span class="mistake-pip"></span>
+                            <span class="mistake-pip"></span><span class="mistake-pip"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-layout">
+                    <section class="hangman-panel" aria-label="رسم الأخطاء">
+                        <p class="hangman-caption">كل خطأ يكشف جزءًا جديدًا</p>
+                        <svg class="hangman-svg" viewBox="0 0 220 270" role="img" aria-label="رسم يتكوّن مع الأخطاء">
+                            <path class="gallows" d="M22 248h176M52 248V24h102M52 68h102"/>
+                            <path class="rope" d="M154 68v24"/>
+                            <circle class="hangman-part person-head" id="head" cx="154" cy="114" r="21"/>
+                            <path class="hangman-part person-line" id="body" d="M154 136v50"/>
+                            <path class="hangman-part person-line" id="rightArm" d="m154 151-34 27"/>
+                            <path class="hangman-part person-line" id="leftArm" d="m154 151 34 27"/>
+                            <path class="hangman-part person-line" id="rightLeg" d="m154 186-30 38"/>
+                            <path class="hangman-part person-line" id="leftLeg" d="m154 186 30 38"/>
+                        </svg>
+                    </section>
+
+                    <section class="keyboard-panel" aria-labelledby="keyboardTitle">
+                        <h2 class="keyboard-heading" id="keyboardTitle">اختاروا حرفًا</h2>
+                        <p class="keyboard-help">اتفقوا على الحرف، ثم اضغطوا عليه لاكتشافه في العبارة.</p>
+                        <div class="letters-grid" id="lettersGrid" role="group" aria-label="لوحة الحروف العربية"></div>
+                    </section>
+                </div>
+
+                <section class="answer-panel" aria-labelledby="answerTitle">
+                    <h2 class="answer-heading" id="answerTitle">العبارة المخفية</h2>
+                    <div class="word-display" id="wordDisplay" dir="rtl" aria-live="polite" aria-label="حروف العبارة المخفية"></div>
+                    <p class="round-announcement" id="roundAnnouncement" aria-live="polite"></p>
+                </section>
+            </div>
+        </section>
+
+        <section class="screen completion-screen" id="completionScreen" aria-labelledby="completionTitle" hidden>
+            <div class="completion-card">
+                <svg class="nativity-star" viewBox="0 0 100 100" aria-hidden="true">
+                    <circle cx="50" cy="50" r="39" fill="none" stroke="currentColor" stroke-opacity=".34" stroke-width="1.5"/>
+                    <path d="M50 8 57 39 84 18 64 44 94 50 64 56 84 82 57 61 50 92 43 61 16 82 36 56 6 50 36 44 16 18 43 39Z" fill="currentColor"/>
+                    <circle cx="50" cy="50" r="8" fill="#1a4434"/>
+                    <path d="M47.5 42.5h5v5h5v5h-5v5h-5v-5h-5v-5h5z" fill="#f1dda3"/>
+                </svg>
+                <h1 class="completion-title" id="completionTitle" tabindex="-1">أكملتم كلمات الميلاد!</h1>
+                <p class="completion-copy">شكرًا لمشاركتكم. أعيدوا اللعب واكتشفوا العبارات من البداية.</p>
+                <div class="completion-count"><strong>١٨</strong><span>كلمة اكتملت معًا</span></div>
+                <div class="completion-actions">
+                    <button class="primary-button" id="returnButton" type="button">
+                        العودة إلى البداية
+                        <svg class="button-arrow" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M19 12H5m7 7-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal" id="modal" hidden>
+        <section class="modal-dialog" id="modalDialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalMessage" tabindex="-1">
+            <div class="result-emblem" aria-hidden="true">
+                <svg viewBox="0 0 48 48">
+                    <path d="M24 3 29 18 45 24 29 30 24 45 19 30 3 24 19 18 24 3Z" fill="currentColor"/>
+                    <circle cx="24" cy="24" r="4" fill="#fffdf7"/>
+                </svg>
+            </div>
+            <h2 class="modal-title" id="modalTitle">أحسنتم!</h2>
+            <p class="modal-message" id="modalMessage"></p>
+            <div class="modal-actions">
+                <button class="primary-button" id="modalButton" type="button">الكلمة اللي بعدها</button>
+            </div>
+        </section>
+    </div>
+
+    <p class="screen-reader-only" id="gameAnnouncement" aria-live="polite" aria-atomic="true"></p>
+
+    <script>
+        "use strict";
+
+        const arabicLetters = [
+            "ا", "أ", "إ", "آ", "ء",
+            "ب", "ت", "ث", "ج", "ح", "خ",
+            "د", "ذ", "ر", "ز", "س", "ش", "ص",
+            "ض", "ط", "ظ", "ع", "غ", "ف", "ق",
+            "ك", "ل", "م", "ن", "ه", "و",
+            "ؤ", "ئ", "ي", "ى", "ة"
+        ];
+
+        const wordList = [
+            "خيمة الاجتماع",
+            "تابوت العهد",
+            "عصا هارون",
+            "لوحة الشريعة",
+            "المنارة الذهبية",
+            "سلم يعقوب",
+            "شورية هارون",
+            "حنة النبية",
+            "قسط المن",
+            "نجمة المشرق",
+            "الحمامة الحسنة",
+            "العليقة المشتعلة",
+            "ثيؤطوكية",
+            "الإبصلمودية",
+            "الكلمة صار جسدا",
+            "حنة أم مريم",
+            "قبة موسي",
+            "أريبصالين"
+        ];
+
+        const bodyParts = ["head", "body", "rightArm", "leftArm", "rightLeg", "leftLeg"];
+        const MAX_MISTAKES = 6;
+
+        const startScreen = document.getElementById("startScreen");
+        const gameContainer = document.getElementById("gameContainer");
+        const completionScreen = document.getElementById("completionScreen");
+        const startButton = document.getElementById("startButton");
+        const returnButton = document.getElementById("returnButton");
+        const lettersGrid = document.getElementById("lettersGrid");
+        const wordDisplay = document.getElementById("wordDisplay");
+        const currentWordNumber = document.getElementById("currentWordNumber");
+        const progressAnnouncement = document.getElementById("progressAnnouncement");
+        const wordProgress = document.getElementById("wordProgress");
+        const progressFill = document.getElementById("progressFill");
+        const mistakesRemaining = document.getElementById("mistakesRemaining");
+        const mistakePips = document.getElementById("mistakePips");
+        const roundAnnouncement = document.getElementById("roundAnnouncement");
+        const gameAnnouncement = document.getElementById("gameAnnouncement");
+        const modal = document.getElementById("modal");
+        const modalDialog = document.getElementById("modalDialog");
+        const modalTitle = document.getElementById("modalTitle");
+        const modalMessage = document.getElementById("modalMessage");
+        const modalButton = document.getElementById("modalButton");
+
+        let currentWordIndex = 0;
+        let currentWord = "";
+        let guessedLetters = new Set();
+        let wrongAttempts = 0;
+        let gameActive = false;
+        let roundResolved = false;
+
+        function normalizeArabicLetter(letter) {
+            const equivalentLetters = {
+                "أ": "ا",
+                "إ": "ا",
+                "آ": "ا",
+                "ء": "ا",
+                "ؤ": "و",
+                "ئ": "ي",
+                "ى": "ي",
+                "ة": "ه"
+            };
+            return equivalentLetters[letter] || letter;
+        }
+
+        function lettersMatch(guessedLetter, wordLetter) {
+            return normalizeArabicLetter(guessedLetter) === normalizeArabicLetter(wordLetter);
+        }
+
+        function createLetterButtons() {
+            lettersGrid.replaceChildren();
+            arabicLetters.forEach((letter) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "letter-key";
+                button.textContent = letter;
+                button.dataset.letter = letter;
+                button.setAttribute("aria-label", "الحرف " + letter);
+                button.addEventListener("click", () => handleLetterClick(letter, button));
+                lettersGrid.appendChild(button);
+            });
+        }
+
+        function createWordDisplay() {
+            wordDisplay.replaceChildren();
+            Array.from(currentWord).forEach((letter, index) => {
+                if (letter === " ") {
+                    const separator = document.createElement("span");
+                    separator.className = "word-space";
+                    separator.dataset.space = "true";
+                    separator.setAttribute("aria-hidden", "true");
+                    separator.title = "مسافة بين الكلمات";
+                    wordDisplay.appendChild(separator);
+                    return;
+                }
+
+                const slot = document.createElement("span");
+                slot.className = "letter-slot";
+                slot.dataset.letter = letter;
+                slot.dataset.index = String(index);
+                slot.setAttribute("aria-hidden", "true");
+                wordDisplay.appendChild(slot);
+            });
+        }
+
+        function resetLetterButtons() {
+            lettersGrid.querySelectorAll(".letter-key").forEach((button) => {
+                button.disabled = false;
+                button.removeAttribute("data-state");
+                button.setAttribute("aria-pressed", "false");
+            });
+        }
+
+        function resetHangman() {
+            bodyParts.forEach((partId) => {
+                document.getElementById(partId).classList.remove("visible");
+            });
+        }
+
+        function updateProgress() {
+            const number = currentWordIndex + 1;
+            const arabicNumber = number.toLocaleString("ar-EG");
+            currentWordNumber.textContent = arabicNumber;
+            progressAnnouncement.textContent = "الكلمة " + arabicNumber + " من " + wordList.length.toLocaleString("ar-EG");
+            wordProgress.setAttribute("aria-valuenow", String(number));
+            progressFill.style.width = ((number / wordList.length) * 100) + "%";
+        }
+
+        function updateMistakeDisplay() {
+            const remaining = Math.max(0, MAX_MISTAKES - wrongAttempts);
+            const arabicRemaining = remaining.toLocaleString("ar-EG");
+            mistakesRemaining.textContent = arabicRemaining;
+            mistakePips.setAttribute("aria-label", arabicRemaining + " أخطاء متبقية من " + MAX_MISTAKES.toLocaleString("ar-EG"));
+            mistakePips.querySelectorAll(".mistake-pip").forEach((pip, index) => {
+                pip.classList.toggle("spent", index >= remaining);
+            });
+        }
+
+        function loadWord(index) {
+            if (index >= wordList.length) {
+                showCompletionScreen();
+                return;
+            }
+
+            currentWordIndex = index;
+            currentWord = wordList[currentWordIndex];
+            guessedLetters = new Set();
+            wrongAttempts = 0;
+            roundResolved = false;
+            gameActive = true;
+
+            resetHangman();
+            resetLetterButtons();
+            createWordDisplay();
+            updateProgress();
+            updateMistakeDisplay();
+            roundAnnouncement.textContent = "المسافات بين الكلمات ظاهرة ولا تحتاج إلى تخمين.";
+            gameAnnouncement.textContent = "بدأت الكلمة " + (currentWordIndex + 1).toLocaleString("ar-EG") + " من " + wordList.length.toLocaleString("ar-EG");
+        }
+
+        function startGame() {
+            currentWordIndex = 0;
+            startScreen.hidden = true;
+            completionScreen.hidden = true;
+            gameContainer.hidden = false;
+            gameContainer.inert = false;
+            loadWord(0);
+            const firstLetterButton = lettersGrid.querySelector(".letter-key");
+            if (firstLetterButton) firstLetterButton.focus();
+        }
+
+        function lockInput() {
+            gameActive = false;
+            lettersGrid.querySelectorAll(".letter-key").forEach((button) => {
+                button.disabled = true;
+            });
+        }
+
+        function handleLetterClick(letter, button) {
+            if (!gameActive || roundResolved || button.disabled) return;
+
+            button.disabled = true;
+            button.setAttribute("aria-pressed", "true");
+
+            const isCorrect = Array.from(currentWord).some((wordLetter) =>
+                wordLetter !== " " && lettersMatch(letter, wordLetter)
+            );
+
+            if (isCorrect) {
+                button.dataset.state = "correct";
+                guessedLetters.add(letter);
+                wordDisplay.querySelectorAll(".letter-slot").forEach((slot) => {
+                    if (lettersMatch(letter, slot.dataset.letter)) {
+                        slot.textContent = slot.dataset.letter;
+                        slot.classList.add("revealed");
+                    }
+                });
+
+                roundAnnouncement.textContent = "حرف صحيح، ظهرت كل مواضعه في العبارة.";
+                const allRevealed = Array.from(wordDisplay.querySelectorAll(".letter-slot"))
+                    .every((slot) => slot.textContent !== "");
+
+                if (allRevealed) finishRound("win");
+                return;
+            }
+
+            button.dataset.state = "wrong";
+            wrongAttempts += 1;
+            document.getElementById(bodyParts[wrongAttempts - 1]).classList.add("visible");
+            updateMistakeDisplay();
+
+            if (wrongAttempts >= MAX_MISTAKES) {
+                finishRound("lose");
+            } else {
+                roundAnnouncement.textContent = "حرف غير موجود. تبقّى " +
+                    (MAX_MISTAKES - wrongAttempts).toLocaleString("ar-EG") + " أخطاء.";
+            }
+        }
+
+        function finishRound(result) {
+            if (roundResolved || !gameActive) return;
+
+            roundResolved = true;
+            lockInput();
+            gameContainer.inert = true;
+            modalDialog.dataset.result = result;
+
+            if (result === "win") {
+                modalTitle.textContent = "أحسنتم!";
+                modalMessage.textContent = "اكتشفتم العبارة كاملة. استعدوا للكلمة التالية.";
+                roundAnnouncement.textContent = "اكتملت العبارة بنجاح.";
+                gameAnnouncement.textContent = "أحسنتم، اكتملت العبارة.";
+            } else {
+                modalTitle.textContent = "انتهت الجولة";
+                modalMessage.replaceChildren(
+                    document.createTextNode("العبارة كانت: "),
+                    Object.assign(document.createElement("strong"), { textContent: currentWord }),
+                    document.createTextNode(". ننتقل معًا إلى الكلمة التالية.")
+                );
+                roundAnnouncement.textContent = "انتهت الأخطاء المتاحة لهذه الكلمة.";
+                gameAnnouncement.textContent = "انتهت الجولة. العبارة كانت " + currentWord;
+            }
+
+            modalButton.textContent = "الكلمة اللي بعدها";
+            modal.hidden = false;
+            modalButton.focus();
+        }
+
+        function showCompletionScreen() {
+            modal.hidden = true;
+            gameContainer.hidden = true;
+            gameContainer.inert = false;
+            completionScreen.hidden = false;
+            gameActive = false;
+            roundResolved = true;
+            gameAnnouncement.textContent = "أكملتم الكلمات الثماني عشرة.";
+            document.getElementById("completionTitle").focus();
+        }
+
+        function goToNextWord() {
+            if (modal.hidden || !roundResolved) return;
+            modal.hidden = true;
+            gameContainer.inert = false;
+
+            if (currentWordIndex + 1 >= wordList.length) {
+                showCompletionScreen();
+                return;
+            }
+
+            loadWord(currentWordIndex + 1);
+            const firstAvailable = lettersGrid.querySelector(".letter-key:not(:disabled)");
+            if (firstAvailable) firstAvailable.focus();
+        }
+
+        function returnToStart() {
+            completionScreen.hidden = true;
+            gameContainer.hidden = true;
+            gameContainer.inert = false;
+            modal.hidden = true;
+            currentWordIndex = 0;
+            currentWord = "";
+            guessedLetters = new Set();
+            wrongAttempts = 0;
+            roundResolved = false;
+            gameActive = false;
+            startScreen.hidden = false;
+            startButton.focus();
+        }
+
+        modal.addEventListener("keydown", (event) => {
+            if (modal.hidden) return;
+            if (event.key === "Escape") {
+                event.preventDefault();
+                return;
+            }
+            if (event.key === "Tab") {
+                event.preventDefault();
+                modalButton.focus();
+            }
+        });
+
+        startButton.addEventListener("click", startGame);
+        returnButton.addEventListener("click", returnToStart);
+        modalButton.addEventListener("click", goToNextWord);
+
+        createLetterButtons();
+    </script>
+</body>
+</html>
